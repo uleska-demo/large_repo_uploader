@@ -29,3 +29,8 @@ Usage is as follows:
       --version_name VERSION_NAME
                             Name for the version/pipeline to reference
       --path PATH           path to the local code repo to trim, zip, and upload
+
+You can run it as follows:
+    
+    python3 large_repo_uploader.py --uleska_host https://my.uleska.io/ --token *** --application_name "My app" --version_name "My version" --path /path/to/my/repo/
+
