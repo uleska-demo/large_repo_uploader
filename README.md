@@ -13,7 +13,7 @@ This is a utility script for working with large repos (over 500MB) and the Ulesk
 
 You can the run a security toolkit from the Uleska UI (or API).  You can run this script as many times as you need - it will refresh the ZIP file as needed.
 
-You will need an account to the Uleska Platform, an auth token, and an application/version to upload to.
+You will need an account to the Uleska Platform, an auth token, and an application/version to upload to. You're client will also need the python 'requests' library.
 
 Usage is as follows:
 
