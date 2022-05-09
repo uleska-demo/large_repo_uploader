@@ -5,11 +5,12 @@ import argparse
 import sys
 import json
 import subprocess
+import time
 
 class ids:
     application_id = ""
     version_id = ""
-    
+
 # mapper function to change app and version names into ids
 def map_app_name_and_version_to_ids(host, application_name, version_name, token, print_json):
     s = requests.Session()
@@ -21,7 +22,7 @@ def map_app_name_and_version_to_ids(host, application_name, version_name, token,
     })
 
     GetApplicationsURL = host + "SecureDesigner/api/v1/applications/"
-    
+
     print ("ApplicationsURL is: " + GetApplicationsURL)
 
     try:
@@ -103,9 +104,9 @@ arg_options.add_argument('--uleska_host',
                              required=True, type=str)
 arg_options.add_argument('--token', help="String for the authentication token", required=True, type=str)
 
-arg_options.add_argument('--application_name', help="Name for the application to reference", type=str)
-arg_options.add_argument('--version_name', help="Name for the version/pipeline to reference", type=str)
-arg_options.add_argument('--path', help="path to the local code repo to trim, zip, and upload", type=str)
+arg_options.add_argument('--application_name', help="Name for the application to reference", required=True, type=str)
+arg_options.add_argument('--version_name', help="Name for the version/pipeline to reference", required=True, type=str)
+arg_options.add_argument('--path', help="Path to the local code repo or directory to trim, zip, and upload", type=str)
 
 
 args = arg_options.parse_args()
@@ -118,14 +119,21 @@ version = ""  # id
 token = ""
 path = ""
 
+max_repo_upload_size = 512000 # 500MB
+max_repo_upload_text = "500 MB"
+
 # Grab the host from the command line arguments
 if args.uleska_host is not None:
     host = args.uleska_host
 
+    # add trailing / onto the host if it's not there
+    if host[-1] != '/':
+        host = host + "/"
+
 # Grab the application id from the command line arguments
 if args.application_name is not None:
     application_name = args.application_name
-    
+
 # Grab the version from the command line arguments
 if args.version_name is not None:
     version_name = args.version_name
@@ -137,68 +145,113 @@ if args.token is not None:
 # Grab the path from the command line arguments
 if args.path is not None:
     path = args.path
-     
-    
+
+
 results = map_app_name_and_version_to_ids(host, application_name, version_name, token, False)
 
 application = results.application_id
 version = results.version_id
-    
+
+presize_int = 0
+presize_int = int( subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8') )
+
+presize_text = ""
+presize_text = subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
+
 # report on the  size of the repo
-print("Pre-check size of repo is " + subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8') )
-      
-# remove typically large files
-for dirpaths, dirs, files in os.walk(path):
-    for file in files:
-        if file.endswith(".zip"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".ZIP"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".bin"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".so"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".so.2"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".dylib"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".jpg"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".JPEG"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".wmv"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
-        if file.endswith(".dll"):
-            print("Removing file " + os.path.join(dirpaths,file))
-            os.remove(os.path.join(dirpaths,file))
+print("Pre-check size of repo is " + presize_text )
 
-    #remove the .git directory encase this is huge.  It's not needed for many scanning tools
-    for dir in dirs:
-        if dir.endswith(".git"):
-            print("Removing directory " + path + "/" + dir)
-            shutil.rmtree(path + "/" + dir)
-            
-print("Removed all unnecessary files...\n")
 
-# report on the new size of the directory
-print("Reduced repo size is now " + subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8') )
+# if the repo is less then 500MB, then we don't need to trim, we can upload
+if presize_int > max_repo_upload_size:
 
-# we've trimmed it as much as we can, now zip it
+    print("\nAs repo is above " + max_repo_upload_text + " we will remove ZIPs and images that are not scanned by security tools...\n")
+
+    # remove typically large files which are completelly unused
+    for dirpaths, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith(".zip"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".ZIP"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".jpg"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".JPEG"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".wmv"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+
+    print("Finished ZIP and image removal.")
+
+    # check if we're under 500MB yet, if not, we'll need to remove libraries which might degrade the scanning
+    # as SCA tools can use them to highlight issues.  But some testing is better than none.
+    size_check_int = int( subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8') )
+    size_check_text = subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
+
+    if size_check_int > max_repo_upload_size:
+
+        print("\nRepo is still above " + max_repo_upload_text + " (it's " + size_check_text + ") so we will have to remove binaries.  Note this means 3rd party library scanners won't be able to scan existing libraries, however they will still be able to scan your 3rd party config files (e.g. NPM, maven, etc).\n")
+
+        # remove libs
+        for dirpaths, dirs, files in os.walk(path):
+            for file in files:
+                if file.endswith(".bin"):
+                    print("Removing file " + os.path.join(dirpaths,file))
+                    os.remove(os.path.join(dirpaths,file))
+                if file.endswith(".so"):
+                    print("Removing file " + os.path.join(dirpaths,file))
+                    os.remove(os.path.join(dirpaths,file))
+                if file.endswith(".so.2"):
+                    print("Removing file " + os.path.join(dirpaths,file))
+                    os.remove(os.path.join(dirpaths,file))
+                if file.endswith(".dylib"):
+                    print("Removing file " + os.path.join(dirpaths,file))
+                    os.remove(os.path.join(dirpaths,file))
+                if file.endswith(".dll"):
+                    print("Removing file " + os.path.join(dirpaths,file))
+                    os.remove(os.path.join(dirpaths,file))
+
+    # check if we're under 500MB yet, if not, we'll need to remove the .git library (which can be big)
+    # which is a pity as some git secret scanners can check it.  But some testing is better than none.
+    size_check_int = int( subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8') )
+    size_check_text = subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
+
+    if size_check_int > max_repo_upload_size:
+
+        print("\nRepo is still above " + max_repo_upload_text + " (it's " + size_check_text + ") so we will have to remove the .git directory.  Note this means secrets scanners that check the git won't be able to check historical git pushes.\n")
+
+        #remove the .git directory encase this is huge.
+        for dirpaths, dirs, files in os.walk(path):
+            for dir in dirs:
+                if dir.endswith(".git"):
+                    print("Removing directory " + path + "/" + dir)
+                    shutil.rmtree(path + "/" + dir)
+
+    print("\nRemoved all unnecessary files...\n")
+
+    final_size_check_int = int( subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8') )
+    final_size_check_text = subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
+
+    if final_size_check_int > max_repo_upload_size:
+        print("We've removed all files we can, but the repo size is still above " + max_repo_upload_text + " (it's " + final_size_check_text + ").  Therefore we cannot upload this repo or it will fail the Uleska size checks.  Try working on a sub directory, or removing other non-code files to reduce the size of the repo for upload.")
+        print("\nExiting as we could not reduce the repo size to under " + max_repo_upload_text + "...")
+        exit(1)
+
+    # report on the new size of the directory
+    print("Reduced repo size is now " + final_size_check_text)
+
+# now zip it
+print("\nCreating zip file... ")
 shutil.make_archive(path + "_zipped", 'zip', path)
 print("Created zip file " + path + "_zipped.zip \n")
 
-url = host + "SecureDesigner/api/v1/applications/" + application + "/versions/" + version + "/upload"
-
-print ("Upload URL: " + url + "\n")
+# We've got the repo into a state where it's ready for upload as a ZIP.  Update the version config to ensure
+# it's accepting a ZIP file for upload, otherwise you'll get a failure.
 
 s = requests.Session()
 
@@ -206,8 +259,39 @@ s.headers.update({
         'Authorization': "" + token
     })
 
+config_url = host + "SecureDesigner/api/v1/applications/" + application + "/versions/" + version
+
+print ("Setting version config to accept ZIP files, URL: " + config_url + "\n")
+
+payload = '{"id":"' + version + '","name":"' + version_name + '","webPageList":[],"roles":[],"tools":[],"reports":[],"scmConfiguration":{"useUpload":true,"authenticationType":"UNAUTHENTICATED"}}'
+
+payload_json = json.loads(payload)
+
+try:
+    StatusResponse = s.request("PUT", config_url, json=payload_json)
+except requests.exceptions.RequestException as err:
+    print("Exception setting version for ZIP upload\n" + str(err))
+    sys.exit(2)
+
+if StatusResponse.status_code != 200:
+    # Something went wrong, maybe server not up, maybe auth wrong
+    print("Non 200 status code returned when version setting version to use ZIP upload.  Code [" + str(StatusResponse.status_code) + "]")
+    sys.exit(2)
+
+print ("Version config now set to use ZIP upload.\n")
+
+# Now upload the ZIP
+
+print ("Uploading ZIP file.\n")
+
+url = host + "SecureDesigner/api/v1/applications/" + application + "/versions/" + version + "/upload"
+
+print ("Upload URL: " + url + "\n")
+
 upload_file = open(path + "_zipped.zip", "rb")
 
+# let's measure how long it took to upload encase there's any issues
+before_upload = time.time()
 
 try:
     StatusResponse = s.post(url, data={"name":"file"}, files = {"file": upload_file})
@@ -222,4 +306,4 @@ if StatusResponse.status_code != 200:
     print("Response: " + str(StatusResponse.content))
     sys.exit(2)
 
-print ("\nUpload successful\n")
+print ("\nUpload successful in " + str(time.time() - before_upload) + " seconds.\n")
