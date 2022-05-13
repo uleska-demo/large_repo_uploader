@@ -152,14 +152,16 @@ results = map_app_name_and_version_to_ids(host, application_name, version_name, 
 application = results.application_id
 version = results.version_id
 
+# get the sizes of the repo path directory, both as number of kb, and in human readable form.
+# NOTE: using -sk instead of -s as we've seen variance across linux dists as to how -s reports
 presize_int = 0
-presize_int = int( subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8') )
+presize_int = int( subprocess.check_output(['du','-sk', path]).split()[0].decode('utf-8') )
 
 presize_text = ""
 presize_text = subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
 
 # report on the  size of the repo
-print("Pre-check size of repo is " + presize_text )
+print("Pre-check size of repo is " + presize_text + " (" + str(presize_int) + ")")
 
 
 # if the repo is less then 500MB, then we don't need to trim, we can upload
@@ -176,6 +178,54 @@ if presize_int > max_repo_upload_size:
             if file.endswith(".ZIP"):
                 print("Removing file " + os.path.join(dirpaths,file))
                 os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".png"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".PNG"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".gif"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".GIF"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".avif"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".AVIF"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".svg"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".SVG"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".tiff"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".TIFF"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".pdf"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".PDF"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".eps"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".EPS"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".ai"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
+            if file.endswith(".AI"):
+                print("Removing file " + os.path.join(dirpaths,file))
+                os.remove(os.path.join(dirpaths,file))
             if file.endswith(".jpg"):
                 print("Removing file " + os.path.join(dirpaths,file))
                 os.remove(os.path.join(dirpaths,file))
@@ -190,12 +240,12 @@ if presize_int > max_repo_upload_size:
 
     # check if we're under 500MB yet, if not, we'll need to remove libraries which might degrade the scanning
     # as SCA tools can use them to highlight issues.  But some testing is better than none.
-    size_check_int = int( subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8') )
+    size_check_int = int( subprocess.check_output(['du','-sk', path]).split()[0].decode('utf-8') )
     size_check_text = subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
 
     if size_check_int > max_repo_upload_size:
 
-        print("\nRepo is still above " + max_repo_upload_text + " (it's " + size_check_text + ") so we will have to remove binaries.  Note this means 3rd party library scanners won't be able to scan existing libraries, however they will still be able to scan your 3rd party config files (e.g. NPM, maven, etc).\n")
+        print("\nRepo is still above " + max_repo_upload_text + " (it's " + size_check_text + " [" + str(size_check_int) + "]) so we will have to remove binaries.  Note this means 3rd party library scanners won't be able to scan existing libraries, however they will still be able to scan your 3rd party config files (e.g. NPM, maven, etc).\n")
 
         # remove libs
         for dirpaths, dirs, files in os.walk(path):
@@ -218,12 +268,12 @@ if presize_int > max_repo_upload_size:
 
     # check if we're under 500MB yet, if not, we'll need to remove the .git library (which can be big)
     # which is a pity as some git secret scanners can check it.  But some testing is better than none.
-    size_check_int = int( subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8') )
+    size_check_int = int( subprocess.check_output(['du','-sk', path]).split()[0].decode('utf-8') )
     size_check_text = subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
 
     if size_check_int > max_repo_upload_size:
 
-        print("\nRepo is still above " + max_repo_upload_text + " (it's " + size_check_text + ") so we will have to remove the .git directory.  Note this means secrets scanners that check the git won't be able to check historical git pushes.\n")
+        print("\nRepo is still above " + max_repo_upload_text + " (it's " + size_check_text + " [" + str(size_check_int) + "]) so we will have to remove the .git directory.  Note this means secrets scanners that check the git won't be able to check historical git pushes.\n")
 
         #remove the .git directory encase this is huge.
         for dirpaths, dirs, files in os.walk(path):
@@ -234,11 +284,11 @@ if presize_int > max_repo_upload_size:
 
     print("\nRemoved all unnecessary files...\n")
 
-    final_size_check_int = int( subprocess.check_output(['du','-s', path]).split()[0].decode('utf-8') )
+    final_size_check_int = int( subprocess.check_output(['du','-sk', path]).split()[0].decode('utf-8') )
     final_size_check_text = subprocess.check_output(['du','-sh', path]).split()[0].decode('utf-8')
 
     if final_size_check_int > max_repo_upload_size:
-        print("We've removed all files we can, but the repo size is still above " + max_repo_upload_text + " (it's " + final_size_check_text + ").  Therefore we cannot upload this repo or it will fail the Uleska size checks.  Try working on a sub directory, or removing other non-code files to reduce the size of the repo for upload.")
+        print("We've removed all files we can, but the repo size is still above " + max_repo_upload_text + " (it's " + final_size_check_text + " [" + str(final_size_check_int) + "]).  Therefore we cannot upload this repo or it will fail the Uleska size checks.  Try working on a sub directory, or removing other non-code files to reduce the size of the repo for upload.")
         print("\nExiting as we could not reduce the repo size to under " + max_repo_upload_text + "...")
         exit(1)
 
@@ -247,8 +297,8 @@ if presize_int > max_repo_upload_size:
 
 # now zip it
 print("\nCreating zip file... ")
-shutil.make_archive(path + "_zipped", 'zip', path)
-print("Created zip file " + path + "_zipped.zip \n")
+shutil.make_archive("Uleska_zipped", 'zip', path)
+print("Created zip file Uleska_zipped.zip \n")
 
 # We've got the repo into a state where it's ready for upload as a ZIP.  Update the version config to ensure
 # it's accepting a ZIP file for upload, otherwise you'll get a failure.
@@ -288,7 +338,7 @@ url = host + "SecureDesigner/api/v1/applications/" + application + "/versions/" 
 
 print ("Upload URL: " + url + "\n")
 
-upload_file = open(path + "_zipped.zip", "rb")
+upload_file = open("Uleska_zipped.zip", "rb")
 
 # let's measure how long it took to upload encase there's any issues
 before_upload = time.time()
