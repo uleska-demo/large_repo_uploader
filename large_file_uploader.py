@@ -48,30 +48,35 @@ def map_app_name_and_version_to_ids(host, application_name, version_name, token,
 
     application_id = ""
     version_id = ""
+    
+    results: list = []
+    results.append(application_and_versions_info)
 
-    for application in application_and_versions_info:
+    for content in results:
+        
+        for application in content['content']:
 
-        if 'name' in application:
-
-            if application['name'] == application_name:
-                # We have found the application, record the GUID
-                application_id = application['id']
-                if not print_json:
-                    print("Application ID found for [" + application_name + "]: " + application_id)
-
-                # Now that we're in the right record for the application, find the version name
-                if 'versions' in application:
-
-                    for version in application['versions']:
-                        if 'name' in version:
-
-                            if version['name'] == version_name:
-                                # We're in the right version, record the GUID
-                                version_id = version['id']
-                                if not print_json:
-                                    print("Version ID found for [" + version_name + "]: " + version_id)
-
-                                break
+            if 'name' in application:
+    
+                if application['name'] == application_name:
+                    # We have found the application, record the GUID
+                    application_id = application['id']
+                    if not print_json:
+                        print("Application ID found for [" + application_name + "]: " + application_id)
+    
+                    # Now that we're in the right record for the application, find the version name
+                    if 'versions' in application:
+    
+                        for version in application['versions']:
+                            if 'name' in version:
+    
+                                if version['name'] == version_name:
+                                    # We're in the right version, record the GUID
+                                    version_id = version['id']
+                                    if not print_json:
+                                        print("Version ID found for [" + version_name + "]: " + version_id)
+    
+                                    break
 
     # check ""
     if application_id == "" or version_id == "":
