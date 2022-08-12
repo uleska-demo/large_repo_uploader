@@ -103,7 +103,7 @@ arguments = sys.argv
 
 # Capture command line arguments
 arg_options = argparse.ArgumentParser(
-    description="Uleska 'Large Repo Uploader'. Removes typically large files and uploads to the project/pipeline to test (you can specify either --application_name and --version_name, or --application and --version (passing GUIDs))", )
+    fromfile_prefix_chars='@', description="Uleska 'Large Repo Uploader'. Removes typically large files and uploads to the project/pipeline to test (you can specify either --application_name and --version_name, or --application and --version (passing GUIDs))", )
 arg_options.add_argument('--uleska_host',
                              help="URL to the Uleska host (e.g. https://s1.uleska.com/) (note final / is required)",
                              required=True, type=str)
